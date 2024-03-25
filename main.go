@@ -15,6 +15,18 @@ type Message struct {
 	address string
 }
 
+type Client struct {
+	name string
+	conn net.Conn
+}
+
+func newUser(name string, conn net.Conn) Client {
+	return Client{
+		name: name,
+		conn: conn,
+	}
+}
+
 func messageBuilder(msg string, conn net.Conn) Message {
 	return Message{
 		text:    conn.RemoteAddr().String() + msg,
