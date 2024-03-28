@@ -2,12 +2,11 @@ package main
 
 import (
 	"bufio"
-	"fmt"
 	"net"
 )
 
 var clients = make(map[string]Client)
-var messages = make(chan string)
+var messages = make(chan Message)
 
 /* var messages = make(chan Message)
 var quit = make(chan Message)
@@ -18,9 +17,13 @@ type Message struct {
 } */
 
 type Client struct {
-	name   string
-	conn   net.Conn
-	status bool
+	name string
+	conn net.Conn
+}
+
+type Message struct {
+	text   string
+	client string
 }
 
 func handleConnection(conn net.Conn) {
@@ -28,16 +31,20 @@ func handleConnection(conn net.Conn) {
 	defer conn.Close()
 
 	client := Client{conn: conn} //initiates client
-	msg := []byte("Welcome to the chat\n")
-	conn.Write(msg)
+	msg := Message{}
+	welcome := []byte("Welcome to the chat\n")
+	conn.Write(welcome)
 
 	input := bufio.NewScanner(conn)
 
+	//TODO: ask for a user
 	conn.Write([]byte("Enter a username:\n"))
 	input.Scan()
 	username := input.Text()
-	client.name = username
+	client.name = username //TODO: Clients struct
+	msg.client = username  //TODO: Messages struct
 
+	//TODO: check if users exists
 	for _, client := range clients {
 		if username == client.name {
 			conn.Write([]byte("User already exists!\n"))
@@ -45,19 +52,25 @@ func handleConnection(conn net.Conn) {
 		}
 	}
 
+	//TODO: if does not exists, add to map
 	clients[conn.RemoteAddr().String()] = client
 
+	//TODO: sending messages to chat room
 	for input.Scan() {
-
-		messages <- input.Text()
-
+		msg.text = input.Text()
+		messages <- msg
 	}
 }
 
 func broadcaster() {
 	for {
 		msg := <-messages
-		fmt.Println(msg)
+		for _, client := range clients {
+			if msg.client == client.name {
+				continue
+			}
+			client.conn.Write([]byte(msg.text + "\n"))
+		}
 	}
 }
 
