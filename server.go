@@ -11,7 +11,7 @@ func startServer() {
 	ln, err := net.Listen("tcp", PORT)
 
 	if err != nil {
-		log.Panic("Could not connect to server. ", err)
+		log.Panic("Could not start server. ", err)
 	}
 	defer ln.Close()
 
