@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"log"
 	"net"
 )
 
@@ -52,14 +53,29 @@ func handleConnection(conn net.Conn) {
 		}
 	}
 
+	conn.Write([]byte("Hello " + client.name + "\n"))
+	log.Printf("User %s join the chat", client.name)
+
 	//TODO: if does not exists, add to map
 	clients[conn.RemoteAddr().String()] = client
 
 	//TODO: sending messages to chat room
 	for input.Scan() {
 		msg.text = input.Text()
-		messages <- msg
+		switch msg.text {
+		case "/help":
+			conn.Write([]byte("Help command\n"))
+		case "/quit":
+			client.conn.Close()
+		default:
+			messages <- msg
+		}
+
 	}
+
+	//TODO: remove user once it leaves the room
+	delete(clients, client.conn.RemoteAddr().String())
+	log.Printf("User %s left the chat", client.name)
 }
 
 func broadcaster() {
@@ -69,7 +85,7 @@ func broadcaster() {
 			if msg.client == client.name {
 				continue
 			}
-			client.conn.Write([]byte(msg.text + "\n"))
+			client.conn.Write([]byte(msg.client + ": " + msg.text + "\n"))
 		}
 	}
 }
