@@ -1,96 +1,60 @@
 package main
 
 import (
-	"bufio"
 	"log"
 	"net"
 )
-
-var clients = make(map[string]Client)
-var messages = make(chan Message)
-
-/* var messages = make(chan Message)
-var quit = make(chan Message)
-
-type Message struct {
-	text    string
-	address string
-} */
 
 type Client struct {
 	name string
 	conn net.Conn
 }
 
-type Message struct {
-	text   string
-	client string
+var Clients map[string]Client
+
+func listClients() {
+	for _, c := range Clients {
+		log.Println(c.name)
+	}
+}
+
+func NewClient(name string, conn net.Conn) *Client {
+	return &Client{
+		name: name,
+		conn: conn,
+	}
+}
+
+func startServer() {
+	ln, err := net.Listen("tcp", ":3000")
+	if err != nil {
+		log.Println(err)
+	}
+	defer ln.Close()
+
+	for {
+		conn, err := ln.Accept()
+		if err != nil {
+			log.Println(err)
+		}
+		go handleConnection(conn)
+	}
 }
 
 func handleConnection(conn net.Conn) {
-
 	defer conn.Close()
+	c := Client{name: "anonymous", conn: conn}
 
-	client := Client{conn: conn} //initiates client
-	msg := Message{}
-	welcome := []byte("Welcome to the chat\n")
-	conn.Write(welcome)
+	Clients[conn.RemoteAddr().Network()] = c
 
+	/* var msg string
 	input := bufio.NewScanner(conn)
-
-	//TODO: ask for a user
-	conn.Write([]byte("Enter a username:\n"))
-	input.Scan()
-	username := input.Text()
-	client.name = username //TODO: Clients struct
-	msg.client = username  //TODO: Messages struct
-
-	//TODO: check if users exists
-	for _, client := range clients {
-		if username == client.name {
-			conn.Write([]byte("User already exists!\n"))
-			return
-		}
-	}
-
-	conn.Write([]byte("Hello " + client.name + "\n"))
-	log.Printf("User %s join the chat", client.name)
-
-	//TODO: if does not exists, add to map
-	clients[conn.RemoteAddr().String()] = client
-
-	//TODO: sending messages to chat room
 	for input.Scan() {
-		msg.text = input.Text()
-		switch msg.text {
-		case "/help":
-			conn.Write([]byte("Help command\n"))
-		case "/quit":
-			client.conn.Close()
-		default:
-			messages <- msg
-		}
-
-	}
-
-	//TODO: remove user once it leaves the room
-	delete(clients, client.conn.RemoteAddr().String())
-	log.Printf("User %s left the chat", client.name)
-}
-
-func broadcaster() {
-	for {
-		msg := <-messages
-		for _, client := range clients {
-			if msg.client == client.name {
-				continue
-			}
-			client.conn.Write([]byte(msg.client + ": " + msg.text + "\n"))
-		}
-	}
+		msg = input.Text()
+		log.Println(msg)
+	} */
 }
 
 func main() {
-	go broadcaster()
 	startServer()
 }

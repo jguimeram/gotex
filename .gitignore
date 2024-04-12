@@ -1,3 +1,7 @@
 main
 .main.go
 gotex
+README.md
+TODO.md
+go.mod
+.main.md
