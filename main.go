@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"log"
 	"net"
 )
@@ -8,18 +9,19 @@ import (
 type Client struct {
 	name string
 	conn net.Conn
+	msg  string
 }
 
-var Clients map[string]Client
+var messages = make(chan Client)
 
-func listClients() {
+/* func listClients() {
 	for _, c := range Clients {
 		log.Println(c.name)
 	}
-}
+} */
 
-func NewClient(name string, conn net.Conn) *Client {
-	return &Client{
+func NewClient(name string, conn net.Conn) Client {
+	return Client{
 		name: name,
 		conn: conn,
 	}
@@ -31,7 +33,7 @@ func startServer() {
 		log.Println(err)
 	}
 	defer ln.Close()
-
+	go broadcaster()
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
@@ -43,18 +45,29 @@ func startServer() {
 
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
-	c := Client{name: "anonymous", conn: conn}
 
-	Clients[conn.RemoteAddr().Network()] = c
+	Clients := make(map[string]Client)
 
-	/* var msg string
+	c := NewClient("anonymous", conn)
+
+	Clients[conn.RemoteAddr().String()] = c
+
 	input := bufio.NewScanner(conn)
+
 	for input.Scan() {
-		msg = input.Text()
-		log.Println(msg)
-	} */
+		c.msg = input.Text()
+		messages <- c
+	}
+}
+
+func broadcaster() {
+	for {
+		client := <-messages
+		log.Println(client.msg)
+	}
 }
 
 func main() {
 	startServer()
+
 }
