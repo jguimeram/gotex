@@ -9,7 +9,11 @@ import (
 type Client struct {
 	name string
 	conn net.Conn
-	msg  string
+	cmd  string
+}
+
+func (c *Client) help() {
+	log.Println("from help function")
 }
 
 var messages = make(chan Client)
@@ -48,6 +52,7 @@ func handleConnection(conn net.Conn) {
 
 	Clients := make(map[string]Client)
 
+	//TODO: username issue
 	c := NewClient("anonymous", conn)
 
 	Clients[conn.RemoteAddr().String()] = c
@@ -55,15 +60,21 @@ func handleConnection(conn net.Conn) {
 	input := bufio.NewScanner(conn)
 
 	for input.Scan() {
-		c.msg = input.Text()
-		messages <- c
+		c.cmd = input.Text()
+		//messages <- c
+		switch c.cmd {
+		case "/help":
+			c.help()
+		default:
+			messages <- c
+		}
 	}
 }
 
 func broadcaster() {
 	for {
 		client := <-messages
-		log.Println(client.msg)
+		log.Println(client.cmd)
 	}
 }
 
