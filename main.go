@@ -37,25 +37,28 @@ func startServer() {
 		log.Println(err)
 	}
 	defer ln.Close()
-	go broadcaster()
+
+	clients := make(map[string]Client)
+
+	go broadcaster(clients)
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
 			log.Println(err)
 		}
-		go handleConnection(conn)
+		go handleConnection(clients, conn)
 	}
 }
 
-func handleConnection(conn net.Conn) {
+func handleConnection(clients map[string]Client, conn net.Conn) {
 	defer conn.Close()
 
-	Clients := make(map[string]Client)
+	//Clients := make(map[string]Client)
 
 	//TODO: username issue
 	c := NewClient("anonymous", conn)
 
-	Clients[conn.RemoteAddr().String()] = c
+	clients[conn.RemoteAddr().String()] = c
 
 	input := bufio.NewScanner(conn)
 
@@ -65,16 +68,27 @@ func handleConnection(conn net.Conn) {
 		switch c.cmd {
 		case "/help":
 			c.help()
+		case "/quit":
+			c.conn.Close()
 		default:
 			messages <- c
 		}
 	}
+
+	delete(clients, conn.RemoteAddr().String())
 }
 
-func broadcaster() {
+func broadcaster(clients map[string]Client) {
 	for {
 		client := <-messages
-		log.Println(client.cmd)
+		log.Println(clients)
+		for _, c := range clients {
+			if c.conn.RemoteAddr().String() == client.conn.RemoteAddr().String() {
+				continue
+			}
+			c.conn.Write([]byte(client.cmd + "\n"))
+		}
+
 	}
 }
 
